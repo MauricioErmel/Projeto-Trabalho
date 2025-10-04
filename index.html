@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciador de Casos</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+
 </head>
 <body>
 
@@ -82,23 +80,19 @@
                 </div>
             </div>
             <div class="cs-files-area">
-                <h4>CS Files</h4>
-                                    <div class="cs-files-inputs">
-                                        <input type="text" class="cs-file-nome" placeholder="Nome">
-                                        <input type="text" class="cs-file-url" placeholder="URL">
-                                        <input type="text" class="cs-file-profile" placeholder="Profile">
-                                        <input type="text" class="cs-file-collection" placeholder="Collection">
-                                        <input type="text" class="cs-file-product-id" placeholder="Product ID">
-                                    </div>                <div class="cs-files-actions">
-                    <button class="add-cs-file-button">Adicionar</button>
-                    <button class="view-cs-files-button">Visualizar</button>
-                </div>
+                <button class="manage-cs-files-button">Gerenciar CS Files</button>
             </div>
             <div class="case-body">
                 <section class="diary-section">
                     <h3>Diário do Caso</h3>
+                    <div class="diary-toolbar hidden">
+                        <button class="format-button" data-format="bold">B</button>
+                        <button class="format-button" data-format="italic">I</button>
+                        <button class="format-button" data-format="underline">U</button>
+                        <input type="color" class="diary-color-input" title="Cor do texto">
+                    </div>
+                    <div class="diary-editable" contenteditable="true"></div>
                     <div class="diary-input-area">
-                        <textarea placeholder="Adicione uma nova anotação..."></textarea>
                         <button class="add-diary-button">Adicionar Anotação</button>
                     </div>
                     <div class="diary-entries"></div>
@@ -132,7 +126,25 @@
     <div id="cs-files-modal" class="modal hidden">
         <div class="modal-content">
             <span class="modal-close-button">&times;</span>
-            <h2>CS Files Registrados</h2>
+            <h2>Gerenciar CS Files</h2>
+            
+            <div class="cs-files-input-area-modal">
+                <h4>Adicionar Novo CS File</h4>
+                <div class="cs-files-inputs">
+                    <input type="text" class="cs-file-nome" placeholder="Nome">
+                    <input type="text" class="cs-file-url" placeholder="URL">
+                    <input type="text" class="cs-file-profile" placeholder="Profile">
+                    <input type="text" class="cs-file-collection" placeholder="Collection">
+                    <input type="text" class="cs-file-product-id" placeholder="Product ID">
+                </div>
+                <div class="cs-files-actions">
+                    <button class="add-cs-file-button-modal">Adicionar</button>
+                </div>
+            </div>
+
+            <hr>
+
+            <h3>CS Files Registrados</h3>
             <div id="cs-files-list">
                 <!-- CS Files serão renderizados aqui -->
             </div>

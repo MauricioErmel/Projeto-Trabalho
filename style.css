@@ -1,4 +1,8 @@
 /* Estrutura Geral */
+.hidden {
+    display: none !important;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
@@ -80,16 +84,184 @@ main {
     background-color: #5a6268;
 }
 
-#toggle-post-live-button {
-    background-color: #17a2b8;
-}
-
-#toggle-pending-tasks-button {
-    background-color: #fd7e14; /* Laranja */
-}
-
 #toggle-pending-tasks-button:hover {
     background-color: #e66a00;
+}
+
+
+/* --- Estilos de Edição da Tabela de CS Files --- */
+
+#cs-files-list td.editing {
+    background-color: #fffbe6; /* A light yellow background */
+    outline: 1px solid #ffc107; /* A yellow border */
+}
+
+.cs-actions-header {
+    width: 60px;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+.cs-file-actions-cell {
+    width: 60px;
+    border: none !important;
+    position: relative;
+}
+
+#cs-files-list .cs-file-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    visibility: hidden;
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+#cs-files-list tr:hover .cs-file-actions {
+    visibility: visible;
+}
+
+#cs-files-list .edit-cs-file-nome,
+#cs-files-list .edit-cs-file-url,
+#cs-files-list .edit-cs-file-profile,
+#cs-files-list .edit-cs-file-collection,
+#cs-files-list .edit-cs-file-product-id {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#cs-files-list .edit-cs-file-button,
+#cs-files-list .delete-cs-file-button,
+#cs-files-list .save-cs-file-button,
+#cs-files-list .cancel-cs-file-button {
+    background: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 0.8rem;
+}
+
+#cs-files-list .edit-cs-file-button {
+    color: #007bff;
+}
+
+#cs-files-list .delete-cs-file-button {
+    color: #dc3545;
+}
+
+#cs-files-list .save-cs-file-button {
+    color: #28a745;
+}
+
+#cs-files-list .cancel-cs-file-button {
+    color: #ffc107;
+}
+
+/* --- Estilos do Modal de CS Files --- */
+
+.cs-files-input-area-modal {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.cs-files-input-area-modal h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+#cs-files-modal hr {
+    border: none;
+    border-top: 1px solid #e9ecef;
+    margin: 0 0 1.5rem 0;
+}
+
+#cs-files-modal h3 {
+    margin-top: 0;
+}
+
+/* --- Estilos da Barra de Ferramentas do Diário --- */
+
+.diary-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+}
+
+.format-button {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 1rem;
+    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.format-button:hover {
+    background-color: #f0f2f5;
+}
+
+.format-button[data-format="italic"] {
+    font-style: italic;
+}
+
+.format-button[data-format="underline"] {
+    text-decoration: underline;
+}
+
+.diary-color-input {
+    width: 30px;
+    height: 30px;
+    border: none;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.diary-editable {
+    flex-grow: 1;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 0.5rem;
+    min-height: 2.5em; /* Altura inicial para aproximadamente uma linha */
+    height: 2.5em;
+    background-color: #fff;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    transition: min-height 0.3s ease-in-out;
+    cursor: text;
+    white-space: nowrap; /* Impede a quebra de linha inicial */
+}
+
+.diary-editable:focus {
+    min-height: 150px;
+    height: auto;
+    white-space: normal; /* Permite a quebra de linha ao focar */
+}
+
+.diary-editable:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.diary-editable-inline {
+    min-height: 150px;
+    height: auto;
+    white-space: normal;
 }
 
 /* Abas de Navegação */
@@ -261,10 +433,25 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
 
 /* Área de CS Files */
 .cs-files-area {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+    /* The wrapper is now just for the button, so less padding is needed */
+    padding: 0; 
+}
+
+.manage-cs-files-button {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.manage-cs-files-button:hover {
+    background-color: #5a6268;
 }
 
 .cs-files-area h4 {
@@ -328,7 +515,11 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
     margin-bottom: 1rem;
 }
 
-.diary-input-area textarea, .checklist-input-area input {
+.diary-input-area {
+    justify-content: flex-end;
+}
+
+.checklist-input-area input {
     flex-grow: 1;
     border: 1px solid #ced4da;
     border-radius: 4px;
@@ -549,8 +740,10 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     width: 80%;
-    max-width: 700px;
+    max-width: 1100px;
     position: relative;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .modal-close-button {
@@ -571,12 +764,14 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1rem;
+    table-layout: fixed;
 }
 
 #cs-files-list th, #cs-files-list td {
     border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
+    overflow-wrap: break-word;
 }
 
 #cs-files-list th {
@@ -592,10 +787,18 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
     margin-bottom: 0.75rem;
 }
 
-#cs-column-selector div {
+#cs-column-selector .cs-column-selector-row {
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
+    align-items: center;
+}
+
+.cs-files-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
 }
 
 #cs-column-selector label {
@@ -605,12 +808,7 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
     font-size: 0.9rem;
 }
 
-.modal-footer {
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid #eee;
-    text-align: right;
-}
+
 
 #download-cs-files-button {
     background-color: #28a745;
@@ -745,4 +943,14 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
 
 #toggle-pending-tasks-button:hover {
     background-color: #e66a00;
+}
+
+/* --- Estilos de Links de Tarefas Pendentes --- */
+
+.case-number-for-task.post-live-link {
+    color: #fd7e14; /* Laranja */
+}
+
+.case-number-for-task.archived-link {
+    color: #dc3545; /* Vermelho */
 }

@@ -11,15 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const caseTabTemplate = document.getElementById('case-tab-template');
     const caseContentTemplate = document.getElementById('case-content-template');
     const csFilesModal = document.getElementById('cs-files-modal');
-    const modalCloseButton = document.querySelector('.modal-close-button');
+    const modalCloseButton = csFilesModal.querySelector('.modal-close-button');
     const csFilesList = document.getElementById('cs-files-list');
-    const downloadCsFilesButton = document.getElementById('download-cs-files-button');
 
     // --- ESTADO DA APLICAÇÃO ---
     let cases = [];
     let activeCaseId = null;
     let currentFileName = '';
-    const converter = new showdown.Converter({ simpleLineBreaks: true });
 
     // --- INICIALIZAÇÃO ---
     function init() {
@@ -40,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.target === csFilesModal) { // Fecha se clicar fora do conteúdo
                 closeCsFilesModal();
             }
+            handleCsFilesModalClick(event);
         });
 
         // Delegação de eventos para elementos dinâmicos
@@ -47,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         archivedList.addEventListener('click', handleUnarchive);
         contentContainer.addEventListener('input', handleContentChange);
         contentContainer.addEventListener('click', handleContentClick);
+        contentContainer.addEventListener('change', handleColorChange);
 
         const togglePostLiveButton = document.getElementById('toggle-post-live-button');
         const postLiveList = document.getElementById('post-live-list');
@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pendingTasksModalCloseButton = pendingTasksModal.querySelector('.modal-close-button');
 
         togglePendingTasksButton.addEventListener('click', () => {
+            renderPendingTasks();
             pendingTasksModal.classList.remove('hidden');
         });
 
@@ -159,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         activeCase.csFiles.forEach(file => {
             const line1Parts = [];
-            // Constrói a primeira linha dinamicamente
             if (selectedColumns.includes('nome')) line1Parts.push(file.nome || '');
             if (selectedColumns.includes('profile')) line1Parts.push(file.profile || '');
             if (selectedColumns.includes('collection')) line1Parts.push(file.collection || '');
@@ -169,12 +169,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileContent += line1Parts.join(' - ') + '\n';
             }
 
-            // Adiciona a URL na linha seguinte, se selecionada
             if (selectedColumns.includes('url')) {
                 fileContent += (file.url || '') + '\n';
             }
 
-            // Adiciona uma linha em branco como separador, se houver algum conteúdo
             if (line1Parts.length > 0 || selectedColumns.includes('url')) {
                 fileContent += '\n';
             }
@@ -192,18 +190,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LÓGICA DE RENDERIZAÇÃO E MODAL ---
-    function openCsFilesModal() {
-        const activeCase = getActiveCase();
-        if (!activeCase) return;
+    function renderCsFilesList(activeCase) {
+        csFilesList.innerHTML = ''; // Clear previous content
 
-        csFilesList.innerHTML = ''; // Limpa o conteúdo anterior do modal
-
-        // Cria a área de seleção de colunas
         const columnSelector = document.createElement('div');
         columnSelector.id = 'cs-column-selector';
         columnSelector.innerHTML = `
             <strong>Colunas para exportar:</strong>
-            <div>
+            <div class="cs-column-selector-row">
                 <label><input type="checkbox" class="cs-column-checkbox" value="nome" checked> Nome</label>
                 <label><input type="checkbox" class="cs-column-checkbox" value="url" checked> URL</label>
                 <label><input type="checkbox" class="cs-column-checkbox" value="profile" checked> Profile</label>
@@ -212,24 +206,27 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // Cria o botão de download
-        const modalFooter = document.createElement('div');
-        modalFooter.className = 'modal-footer';
         const downloadButton = document.createElement('button');
         downloadButton.id = 'download-cs-files-button';
         downloadButton.textContent = 'Download .txt dos Selecionados';
         downloadButton.addEventListener('click', handleCsFilesDownload);
-        modalFooter.appendChild(downloadButton);
+        columnSelector.querySelector('.cs-column-selector-row').appendChild(downloadButton);
 
         csFilesList.appendChild(columnSelector);
-        csFilesList.appendChild(modalFooter);
 
-        // Cria e exibe a tabela de visualização
+        const listHeader = document.createElement('div');
+        listHeader.className = 'cs-files-list-header';
+        const title = document.createElement('h3');
+        title.textContent = 'CS Files Registrados';
+        listHeader.appendChild(title);
+        csFilesList.appendChild(listHeader);
+        
         if (activeCase.csFiles.length > 0) {
             const table = document.createElement('table');
             table.innerHTML = `
                 <thead>
                     <tr>
+                        <th class="cs-actions-header"></th>
                         <th>Nome</th>
                         <th>URL</th>
                         <th>Profile</th>
@@ -242,7 +239,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const tbody = table.querySelector('tbody');
             activeCase.csFiles.forEach(file => {
                 const row = tbody.insertRow();
+                row.dataset.csFileId = file.id;
                 row.innerHTML = `
+                    <td class="cs-file-actions-cell">
+                        <div class="cs-file-actions">
+                            <button class="edit-cs-file-button" data-cs-file-id="${file.id}">Editar</button>
+                            <button class="delete-cs-file-button" data-cs-file-id="${file.id}">Excluir</button>
+                        </div>
+                    </td>
                     <td>${file.nome || ''}</td>
                     <td>${file.url || ''}</td>
                     <td>${file.profile || ''}</td>
@@ -250,14 +254,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${file.productId || ''}</td>
                 `;
             });
-            // Insere a tabela antes do rodapé
-            csFilesList.insertBefore(table, modalFooter);
+            csFilesList.appendChild(table);
         } else {
             const noFilesMessage = document.createElement('p');
             noFilesMessage.textContent = 'Nenhum CS File registrado para este caso.';
-            csFilesList.insertBefore(noFilesMessage, modalFooter);
+            csFilesList.appendChild(noFilesMessage);
         }
+    }
 
+    function openCsFilesModal() {
+        const activeCase = getActiveCase();
+        if (!activeCase) return;
+
+        renderCsFilesList(activeCase);
         csFilesModal.classList.remove('hidden');
     }
 
@@ -367,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const entryDiv = document.createElement('div');
             entryDiv.className = 'diary-entry';
             const entryDate = new Date(entry.timestamp).toLocaleString('pt-BR');
-            entryDiv.innerHTML = `<div class="diary-entry-header"><div class="timestamp">${entryDate}</div><div class="diary-actions"><button class="edit-diary-button" data-diary-id="${entry.id}">Editar</button><button class="delete-diary-button" data-diary-id="${entry.id}">Excluir</button></div></div><div class="diary-text-content">${converter.makeHtml(entry.text)}</div>`;
+            entryDiv.innerHTML = `<div class="diary-entry-header"><div class="timestamp">${entryDate}</div><div class="diary-actions"><button class="edit-diary-button" data-diary-id="${entry.id}">Editar</button><button class="delete-diary-button" data-diary-id="${entry.id}">Excluir</button></div></div><div class="diary-text-content">${entry.text}</div>`;
             diaryEntriesContainer.appendChild(entryDiv);
         });
         const checklistItemsContainer = contentNode.querySelector('.checklist-items');
@@ -379,6 +388,24 @@ document.addEventListener('DOMContentLoaded', () => {
             checklistItemsContainer.appendChild(itemLi);
         });
         contentContainer.appendChild(contentNode);
+
+        // --- Toolbar visibility logic ---
+        const diaryToolbar = contentContainer.querySelector('.diary-toolbar');
+        const diaryEditable = contentContainer.querySelector('.diary-editable');
+
+        if (diaryToolbar && diaryEditable) {
+            diaryEditable.addEventListener('focus', () => {
+                diaryToolbar.classList.remove('hidden');
+            });
+
+            diaryEditable.addEventListener('blur', () => {
+                diaryToolbar.classList.add('hidden');
+            });
+
+            diaryToolbar.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+            });
+        }
     }
 
     function renderArchivedList() {
@@ -438,6 +465,84 @@ document.addEventListener('DOMContentLoaded', () => {
         archivedList.classList.toggle('hidden');
     }
 
+    function handleCsFilesModalClick(event) {
+        const activeCase = getActiveCase();
+        if (!activeCase) return;
+
+        const target = event.target;
+
+        if (target.matches('.add-cs-file-button-modal')) {
+            const modal = target.closest('#cs-files-modal');
+            const nomeInput = modal.querySelector('.cs-file-nome');
+            const urlInput = modal.querySelector('.cs-file-url');
+            const profileInput = modal.querySelector('.cs-file-profile');
+            const collectionInput = modal.querySelector('.cs-file-collection');
+            const productIdInput = modal.querySelector('.cs-file-product-id');
+
+            if (nomeInput.value.trim()) {
+                activeCase.csFiles.unshift({ 
+                    id: Date.now().toString(), 
+                    nome: nomeInput.value.trim(), 
+                    url: urlInput.value.trim(), 
+                    profile: profileInput.value.trim(),
+                    collection: collectionInput.value.trim(),
+                    productId: productIdInput.value.trim()
+                });
+                nomeInput.value = '';
+                urlInput.value = '';
+                profileInput.value = '';
+                collectionInput.value = '';
+                productIdInput.value = '';
+                
+                renderCsFilesList(activeCase);
+            }
+        } else if (target.matches('.delete-cs-file-button')) {
+            const csFileId = target.dataset.csFileId;
+            if (confirm('Tem certeza que deseja excluir este CS File?')) {
+                activeCase.csFiles = activeCase.csFiles.filter(file => file.id !== csFileId);
+                renderCsFilesList(activeCase);
+            }
+        } else if (target.matches('.edit-cs-file-button')) {
+            const row = target.closest('tr');
+            const cells = row.querySelectorAll('td');
+            
+            // Make cells editable
+            for (let i = 1; i < cells.length; i++) {
+                cells[i].contentEditable = true;
+                cells[i].classList.add('editing');
+            }
+
+            // Change buttons
+            const actionsCell = cells[0];
+            const csFileId = target.dataset.csFileId;
+            actionsCell.innerHTML = `
+                <div class="cs-file-actions" style="visibility: visible; flex-direction: column;">
+                    <button class="save-cs-file-button" data-cs-file-id="${csFileId}">Salvar</button>
+                    <button class="cancel-cs-file-button" data-cs-file-id="${csFileId}">Cancelar</button>
+                </div>
+            `;
+            
+            cells[1].focus();
+        } else if (target.matches('.save-cs-file-button')) {
+            const csFileId = target.dataset.csFileId;
+            const file = activeCase.csFiles.find(f => f.id === csFileId);
+            if (file) {
+                const row = target.closest('tr');
+                const cells = row.querySelectorAll('td');
+                
+                file.nome = cells[1].textContent;
+                file.url = cells[2].textContent;
+                file.profile = cells[3].textContent;
+                file.collection = cells[4].textContent;
+                file.productId = cells[5].textContent;
+                
+                renderCsFilesList(activeCase);
+            }
+        } else if (target.matches('.cancel-cs-file-button')) {
+            renderCsFilesList(activeCase);
+        }
+    }
+
     function handleContentChange(event) {
         const activeCase = getActiveCase();
         if (!activeCase) return;
@@ -464,6 +569,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function handleColorChange(event) {
+        if (event.target.matches('.diary-color-input')) {
+            applyFormatToDiary('foreColor', event.target.value);
+        }
+    }
+
     function handleContentClick(event) {
         if (event.target.matches('.copy-case-number-button-content')) {
             const caseContent = event.target.closest('.case-content');
@@ -475,6 +586,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             }
+            return;
+        }
+
+        if (event.target.matches('.format-button')) {
+            applyFormatToDiary(event.target.dataset.format);
+            return;
+        }
+
+        if (event.target.matches('.manage-cs-files-button')) {
+            openCsFilesModal();
             return;
         }
 
@@ -503,42 +624,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // --- Ações de CS Files ---
-        if (target.matches('.add-cs-file-button')) {
-            const nomeInput = contentContainer.querySelector('.cs-file-nome');
-            const urlInput = contentContainer.querySelector('.cs-file-url');
-            const profileInput = contentContainer.querySelector('.cs-file-profile');
-            const collectionInput = contentContainer.querySelector('.cs-file-collection');
-            const productIdInput = contentContainer.querySelector('.cs-file-product-id');
-
-            if (nomeInput.value.trim()) {
-                activeCase.csFiles.unshift({ 
-                    id: Date.now().toString(), 
-                    nome: nomeInput.value.trim(), 
-                    url: urlInput.value.trim(), 
-                    profile: profileInput.value.trim(),
-                    collection: collectionInput.value.trim(),
-                    productId: productIdInput.value.trim()
-                });
-                nomeInput.value = '';
-                urlInput.value = '';
-                profileInput.value = '';
-                collectionInput.value = '';
-                productIdInput.value = '';
-                alert('CS File adicionado!');
-            }
-        }
-
-        if (target.matches('.view-cs-files-button')) {
-            openCsFilesModal();
-        }
-
         // --- Ações do Diário ---
         if (target.matches('.add-diary-button')) {
-            const textarea = contentContainer.querySelector('.diary-input-area textarea');
-            if (textarea.value.trim()) {
-                activeCase.diary.unshift({ id: Date.now().toString(), text: textarea.value, timestamp: new Date().toISOString() });
-                textarea.value = '';
+            const editableDiv = contentContainer.querySelector('.diary-editable');
+            if (editableDiv.innerHTML.trim()) {
+                activeCase.diary.unshift({ id: Date.now().toString(), text: editableDiv.innerHTML, timestamp: new Date().toISOString() });
+                editableDiv.innerHTML = '';
                 renderActiveCaseContent();
             }
         }
@@ -548,14 +639,34 @@ document.addEventListener('DOMContentLoaded', () => {
             if (entry) {
                 const entryDiv = target.closest('.diary-entry');
                 const textContentDiv = entryDiv.querySelector('.diary-text-content');
+
+                const mainToolbar = contentContainer.querySelector('.diary-toolbar');
+                const newToolbar = mainToolbar.cloneNode(true);
+                newToolbar.classList.remove('hidden');
+
+                const editableDiv = document.createElement('div');
+                editableDiv.className = 'diary-editable diary-editable-inline';
+                editableDiv.contentEditable = true;
+                editableDiv.innerHTML = entry.text;
                 
-                textContentDiv.innerHTML = `
-                    <textarea class="edit-diary-textarea" style="width: 100%; height: 150px;">${entry.text}</textarea>
-                    <div class="edit-diary-actions" style="margin-top: 0.5rem;">
-                        <button class="save-diary-button" data-diary-id="${diaryId}">Salvar</button>
-                        <button class="cancel-diary-button" data-diary-id="${diaryId}">Cancelar</button>
-                    </div>
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'edit-diary-actions';
+                actionsDiv.style.marginTop = '0.5rem';
+                actionsDiv.innerHTML = `
+                    <button class="save-diary-button" data-diary-id="${diaryId}">Salvar</button>
+                    <button class="cancel-diary-button" data-diary-id="${diaryId}">Cancelar</button>
                 `;
+
+                textContentDiv.innerHTML = '';
+                textContentDiv.appendChild(newToolbar);
+                textContentDiv.appendChild(editableDiv);
+                textContentDiv.appendChild(actionsDiv);
+
+                editableDiv.focus();
+
+                newToolbar.addEventListener('mousedown', (event) => {
+                    event.preventDefault();
+                });
             }
         }
 
@@ -564,8 +675,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const entry = activeCase.diary.find(e => e.id === diaryId);
             if (entry) {
                 const entryDiv = target.closest('.diary-entry');
-                const textarea = entryDiv.querySelector('.edit-diary-textarea');
-                entry.text = textarea.value;
+                const editableDiv = entryDiv.querySelector('.diary-editable');
+                entry.text = editableDiv.innerHTML;
                 renderActiveCaseContent();
             }
         }
@@ -642,6 +753,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNÇÕES AUXILIARES ---
+    function applyFormatToDiary(format, value = null) {
+        document.execCommand(format, false, value);
+    }
+
     function getCaseById(id) {
         return cases.find(c => c.id === id);
     }
@@ -686,10 +801,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (caseData.checklist) {
                 caseData.checklist.forEach(task => {
                     if (!task.isDone) {
+                        let linkClass = 'case-number-for-task';
+                        if (caseData.isPostLive) {
+                            linkClass += ' post-live-link';
+                        } else if (caseData.isArchived) {
+                            linkClass += ' archived-link';
+                        }
+
                         const taskElement = document.createElement('div');
                         taskElement.className = 'pending-task-item';
                         taskElement.innerHTML = `
-                            <a href="#" class="case-number-for-task" data-case-id="${caseData.id}">${caseData.number || 'N/A'}</a>
+                            <a href="#" class="${linkClass}" data-case-id="${caseData.id}">${caseData.number || 'N/A'}</a>
                             <span class="task-text">${task.text}</span>
                         `;
                         pendingTasksList.appendChild(taskElement);
