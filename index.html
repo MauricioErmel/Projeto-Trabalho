@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Casos</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <div class="header-title-container">
+            <h1>Gerenciador de Casos</h1>
+            <span id="current-file-name"></span>
+        </div>
+        <div class="file-controls">
+            <button id="toggle-pending-tasks-button">Tarefas</button>
+            <label for="file-loader" class="file-button">Carregar Casos</label>
+            <input type="file" id="file-loader" accept=".txt">
+            <button id="save-button">Salvar Alterações</button>
+            <button id="toggle-archived-button">Ver Casos Arquivados</button>
+            <button id="toggle-post-live-button">Ver Post-live</button>
+        </div>
+    </header>
+
+    <main>
+        <nav id="tabs-container">
+            <button id="new-case-button">+ Novo Caso</button>
+        </nav>
+
+        <div id="archived-list" class="hidden">
+            <h3>Casos Arquivados</h3>
+            <!-- Lista de casos arquivados será inserida aqui -->
+        </div>
+
+        <div id="post-live-list" class="hidden">
+            <h3>Casos Post-live</h3>
+            <!-- Lista de casos post-live será inserida aqui -->
+        </div>
+
+        <div id="content-container">
+            <div class="welcome-message">
+                <h2>Bem-vindo!</h2>
+                <p>Para começar, crie um novo caso ou carregue um arquivo <code>baseDeCasos.txt</code> existente.</p>
+            </div>
+        </div>
+
+
+
+    </main>
+
+    <!-- Template para uma nova aba de caso -->
+    <template id="case-tab-template">
+        <button class="tab"></button>
+    </template>
+
+    <!-- Template para o conteúdo de um caso -->
+    <template id="case-content-template">
+        <div class="case-content">
+            <div class="case-header">
+                <input type="text" class="case-title-input" placeholder="Título do Caso">
+                <div class="tags-container">
+                    <!-- As tags serão adicionadas aqui -->
+                </div>
+                <div class="case-meta">
+                    <button class="copy-case-number-button-content">&#x1f4cb;</button>
+                    <input type="text" class="case-number-input" placeholder="Número do Caso">
+                    <input type="datetime-local" class="case-launch-date-input">
+                    <div class="tag-input-container">
+                        <input type="text" class="tag-input" placeholder="Adicionar tag...">
+                        <button class="add-tag-button">Adicionar Tag</button>
+                    </div>
+                </div>
+                <div class="case-options">
+                    <label><input type="checkbox" class="special-project-checkbox"> Special Project</label>
+                    <label><input type="checkbox" class="can-launch-sooner-checkbox"> Can Launch Sooner</label>
+                    <label><input type="checkbox" class="content-automated-checkbox"> Content Automated</label>
+                    <label><input type="checkbox" class="post-live-checkbox"> Post-live</label>
+                </div>
+            </div>
+            <div class="cs-files-area">
+                <h4>CS Files</h4>
+                                    <div class="cs-files-inputs">
+                                        <input type="text" class="cs-file-nome" placeholder="Nome">
+                                        <input type="text" class="cs-file-url" placeholder="URL">
+                                        <input type="text" class="cs-file-profile" placeholder="Profile">
+                                        <input type="text" class="cs-file-collection" placeholder="Collection">
+                                        <input type="text" class="cs-file-product-id" placeholder="Product ID">
+                                    </div>                <div class="cs-files-actions">
+                    <button class="add-cs-file-button">Adicionar</button>
+                    <button class="view-cs-files-button">Visualizar</button>
+                </div>
+            </div>
+            <div class="case-body">
+                <section class="diary-section">
+                    <h3>Diário do Caso</h3>
+                    <div class="diary-input-area">
+                        <textarea placeholder="Adicione uma nova anotação..."></textarea>
+                        <button class="add-diary-button">Adicionar Anotação</button>
+                    </div>
+                    <div class="diary-entries"></div>
+                </section>
+                <section class="checklist-section">
+                    <h3>Checklist</h3>
+                    <div class="checklist-input-area">
+                        <input type="text" placeholder="Nova tarefa...">
+                        <button class="add-checklist-button">Adicionar Tarefa</button>
+                    </div>
+                    <ul class="checklist-items"></ul>
+                </section>
+            </div>
+            <div class="case-footer">
+                <button class="archive-case-button">Arquivar Caso</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Modal para CS Files -->
+    <div id="pending-tasks-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close-button">&times;</span>
+            <h3>Tarefas Pendentes</h3>
+            <div id="pending-tasks-list">
+                <!-- Pending tasks will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="cs-files-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close-button">&times;</span>
+            <h2>CS Files Registrados</h2>
+            <div id="cs-files-list">
+                <!-- CS Files serão renderizados aqui -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
