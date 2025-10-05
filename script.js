@@ -14,6 +14,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCloseButton = csFilesModal.querySelector('.modal-close-button');
     const csFilesList = document.getElementById('cs-files-list');
 
+    const searchModal = document.getElementById('search-modal');
+    const searchCasesButton = document.getElementById('search-cases-button');
+    const searchModalCloseButton = searchModal.querySelector('.modal-close-button');
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    const resetSearchButton = document.getElementById('reset-search-button');
+    const searchResultsContainer = document.getElementById('search-results');
+    const searchCaseContentContainer = document.getElementById('search-case-content-container');
+
     // --- ESTADO DA APLICAÇÃO ---
     let cases = [];
     let activeCaseId = null;
@@ -74,6 +83,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const pendingTasksList = document.getElementById('pending-tasks-list');
         pendingTasksList.addEventListener('click', handlePendingTaskClick);
+
+        // Event Listeners da Pesquisa
+        searchCasesButton.addEventListener('click', openSearchModal);
+        searchModalCloseButton.addEventListener('click', closeSearchModal);
+        searchButton.addEventListener('click', performSearch);
+        resetSearchButton.addEventListener('click', resetSearch);
+        searchInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        });
+        searchResultsContainer.addEventListener('click', handleSearchResultClick);
+
+        searchModal.addEventListener('click', (event) => {
+            if (event.target === searchModal) {
+                closeSearchModal();
+            }
+        });
     }
 
     // --- MANIPULAÇÃO DE ARQUIVOS ---
@@ -190,6 +217,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LÓGICA DE RENDERIZAÇÃO E MODAL ---
+    function renderChecklist(activeCase, container) {
+        const checklistItemsContainer = container.querySelector('.checklist-items');
+        if (!checklistItemsContainer) return;
+
+        checklistItemsContainer.innerHTML = ''; // Clear existing items
+
+        activeCase.checklist.forEach(item => {
+            const itemLi = document.createElement('li');
+            itemLi.className = 'checklist-item';
+            if(item.isDone) itemLi.classList.add('done');
+            itemLi.innerHTML = `<input type="checkbox" data-task-id="${item.id}" ${item.isDone ? 'checked' : ''}><label class="checklist-label">${item.text}</label><div class="checklist-actions"><button class="edit-task-button" data-task-id="${item.id}">Editar</button><button class="delete-task-button" data-task-id="${item.id}">Excluir</button></div>`;
+            checklistItemsContainer.appendChild(itemLi);
+        });
+        updatePendingTasksCount();
+    }
+
+    function renderTags(activeCase, container) {
+        const tagsContainer = container.querySelector('.tags-container');
+        if (!tagsContainer) return;
+
+        tagsContainer.innerHTML = ''; // Clear existing tags
+
+        if (activeCase.isContentAutomated) {
+            const mapexTag = document.createElement('span');
+            mapexTag.className = 'tag mapex-tag';
+            mapexTag.textContent = 'Mapex';
+            tagsContainer.appendChild(mapexTag);
+        }
+        if (activeCase.tags) {
+            activeCase.tags.forEach(tag => {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'tag';
+                tagElement.textContent = tag;
+                const removeButton = document.createElement('button');
+                removeButton.className = 'remove-tag-button';
+                removeButton.textContent = 'x';
+                removeButton.dataset.tag = tag;
+                tagElement.appendChild(removeButton);
+                tagsContainer.appendChild(tagElement);
+            });
+        }
+    }
+
     function renderCsFilesList(activeCase) {
         csFilesList.innerHTML = ''; // Clear previous content
 
@@ -276,10 +346,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function render() {
         renderTabs();
-        renderActiveCaseContent();
+        renderActiveCaseContent(contentContainer, false);
         renderArchivedList();
         renderPostLiveList();
         renderPendingTasks();
+        updatePendingTasksCount();
     }
 
     function renderTabs() {
@@ -327,11 +398,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderActiveCaseContent() {
-        contentContainer.innerHTML = '';
+    function renderActiveCaseContent(container = contentContainer, isReadOnly = false) {
+        container.innerHTML = '';
         const activeCase = getActiveCase();
         if (!activeCase) {
-            contentContainer.innerHTML = `<div class="welcome-message"><h2>Bem-vindo!</h2><p>Crie um novo caso ou carregue um arquivo.</p></div>`;
+            container.innerHTML = `<div class="welcome-message"><h2>Bem-vindo!</h2><p>Crie um novo caso ou carregue um arquivo.</p></div>`;
             return;
         }
         const contentNode = caseContentTemplate.content.cloneNode(true);
@@ -350,26 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         contentNode.querySelector('.content-automated-checkbox').checked = activeCase.isContentAutomated;
         contentNode.querySelector('.post-live-checkbox').checked = activeCase.isPostLive;
 
-        const tagsContainer = contentNode.querySelector('.tags-container');
-        if (activeCase.isContentAutomated) {
-            const mapexTag = document.createElement('span');
-            mapexTag.className = 'tag mapex-tag';
-            mapexTag.textContent = 'Mapex';
-            tagsContainer.appendChild(mapexTag);
-        }
-        if (activeCase.tags) {
-            activeCase.tags.forEach(tag => {
-                const tagElement = document.createElement('span');
-                tagElement.className = 'tag';
-                tagElement.textContent = tag;
-                const removeButton = document.createElement('button');
-                removeButton.className = 'remove-tag-button';
-                removeButton.textContent = 'x';
-                removeButton.dataset.tag = tag;
-                tagElement.appendChild(removeButton);
-                tagsContainer.appendChild(tagElement);
-            });
-        }
+        renderTags(activeCase, contentNode);
 
         const diaryEntriesContainer = contentNode.querySelector('.diary-entries');
         activeCase.diary.forEach(entry => {
@@ -379,19 +431,30 @@ document.addEventListener('DOMContentLoaded', () => {
             entryDiv.innerHTML = `<div class="diary-entry-header"><div class="timestamp">${entryDate}</div><div class="diary-actions"><button class="edit-diary-button" data-diary-id="${entry.id}">Editar</button><button class="delete-diary-button" data-diary-id="${entry.id}">Excluir</button></div></div><div class="diary-text-content">${entry.text}</div>`;
             diaryEntriesContainer.appendChild(entryDiv);
         });
-        const checklistItemsContainer = contentNode.querySelector('.checklist-items');
-        activeCase.checklist.forEach(item => {
-            const itemLi = document.createElement('li');
-            itemLi.className = 'checklist-item';
-            if(item.isDone) itemLi.classList.add('done');
-            itemLi.innerHTML = `<input type="checkbox" data-task-id="${item.id}" ${item.isDone ? 'checked' : ''}><label class="checklist-label">${item.text}</label><div class="checklist-actions"><button class="edit-task-button" data-task-id="${item.id}">Editar</button><button class="delete-task-button" data-task-id="${item.id}">Excluir</button></div>`;
-            checklistItemsContainer.appendChild(itemLi);
-        });
-        contentContainer.appendChild(contentNode);
+        renderChecklist(activeCase, contentNode);
+
+        const archiveButton = contentNode.querySelector('.archive-case-button');
+        if (activeCase.isArchived) {
+            archiveButton.textContent = 'Reativar Caso';
+            archiveButton.classList.remove('archive-case-button');
+            archiveButton.classList.add('unarchive-case-button');
+        }
+
+        if (isReadOnly) {
+            contentNode.querySelectorAll('input, button, [contenteditable]').forEach(el => {
+                el.disabled = true;
+                el.setAttribute('disabled', 'disabled');
+                if(el.hasAttribute('contenteditable')) {
+                    el.removeAttribute('contenteditable');
+                }
+            });
+        }
+
+        container.appendChild(contentNode);
 
         // --- Toolbar visibility logic ---
-        const diaryToolbar = contentContainer.querySelector('.diary-toolbar');
-        const diaryEditable = contentContainer.querySelector('.diary-editable');
+        const diaryToolbar = container.querySelector('.diary-toolbar');
+        const diaryEditable = container.querySelector('.diary-editable');
 
         if (diaryToolbar && diaryEditable) {
             diaryEditable.addEventListener('focus', () => {
@@ -404,6 +467,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             diaryToolbar.addEventListener('mousedown', (event) => {
                 event.preventDefault();
+            });
+        }
+
+        // --- Add tag on Enter key ---
+        const tagInput = container.querySelector('.tag-input');
+        if (tagInput) {
+            tagInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addTag();
+                }
+            });
+        }
+
+        // --- Add checklist task on Enter key ---
+        const checklistInput = container.querySelector('.checklist-input-area input');
+        if (checklistInput) {
+            checklistInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addChecklistTask();
+                }
             });
         }
     }
@@ -423,6 +508,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- AÇÕES DO USUÁRIO ---
+    function addChecklistTask() {
+        const activeCase = getActiveCase();
+        if (!activeCase) return;
+
+        const checklistInput = contentContainer.querySelector('.checklist-input-area input');
+        if (checklistInput && checklistInput.value.trim()) {
+            activeCase.checklist.unshift({ id: Date.now().toString(), text: checklistInput.value.trim(), isDone: false });
+            checklistInput.value = '';
+            renderChecklist(activeCase, contentContainer);
+            checklistInput.focus();
+        }
+    }
+
     function createNewCase() {
         const newCase = {
             id: Date.now().toString(),
@@ -575,6 +673,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function addTag() {
+        const activeCase = getActiveCase();
+        if (!activeCase) return;
+
+        const tagInput = contentContainer.querySelector('.tag-input');
+        if (tagInput && tagInput.value.trim()) {
+            if (!activeCase.tags) {
+                activeCase.tags = [];
+            }
+            activeCase.tags.push(tagInput.value.trim());
+            tagInput.value = '';
+            renderTags(activeCase, contentContainer);
+            tagInput.focus();
+        }
+    }
+
     function handleContentClick(event) {
         if (event.target.matches('.copy-case-number-button-content')) {
             const caseContent = event.target.closest('.case-content');
@@ -605,22 +719,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Ações de Tags ---
         if (target.matches('.add-tag-button')) {
-            const tagInput = contentContainer.querySelector('.tag-input');
-            if (tagInput.value.trim()) {
-                if (!activeCase.tags) {
-                    activeCase.tags = [];
-                }
-                activeCase.tags.push(tagInput.value.trim());
-                tagInput.value = '';
-                renderActiveCaseContent();
-            }
+            addTag();
         }
 
         if (target.matches('.remove-tag-button')) {
             const tagToRemove = target.dataset.tag;
             if (activeCase.tags) {
                 activeCase.tags = activeCase.tags.filter(tag => tag !== tagToRemove);
-                renderActiveCaseContent();
+                renderTags(activeCase, contentContainer);
             }
         }
 
@@ -694,17 +800,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Ações da Checklist ---
         if (target.matches('.add-checklist-button')) {
-            const input = contentContainer.querySelector('.checklist-input-area input');
-            if (input.value.trim()) {
-                activeCase.checklist.unshift({ id: Date.now().toString(), text: input.value, isDone: false });
-                input.value = '';
-                renderActiveCaseContent();
-            }
+            addChecklistTask();
         }
         if (target.matches('.checklist-item input[type="checkbox"]')) {
             const taskId = target.dataset.taskId;
             const task = activeCase.checklist.find(t => t.id === taskId);
-            if (task) { task.isDone = target.checked; renderActiveCaseContent(); }
+            if (task) { 
+                task.isDone = target.checked; 
+                renderChecklist(activeCase, contentContainer);
+            }
         }
         if (target.matches('.edit-task-button')) {
             const taskId = target.dataset.taskId;
@@ -729,32 +833,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 const itemLi = target.closest('.checklist-item');
                 const input = itemLi.querySelector('.edit-task-input');
                 task.text = input.value;
-                renderActiveCaseContent();
+                renderChecklist(activeCase, contentContainer);
             }
         }
 
         if (target.matches('.cancel-task-button')) {
-            renderActiveCaseContent();
+            renderChecklist(activeCase, contentContainer);
         }
         if (target.matches('.delete-task-button')) {
             const taskId = target.dataset.taskId;
             if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
                 activeCase.checklist = activeCase.checklist.filter(t => t.id !== taskId);
-                renderActiveCaseContent();
+                renderChecklist(activeCase, contentContainer);
             }
         }
 
         // --- Ações do Caso ---
         if (target.matches('.archive-case-button')) {
-            activeCase.isArchived = true;
-            activeCaseId = cases.find(c => !c.isArchived)?.id || null;
-            render();
+            const activeCase = getActiveCase();
+            if(activeCase) {
+                activeCase.isArchived = true;
+                activeCaseId = cases.find(c => !c.isArchived && !c.isPostLive)?.id || null;
+                render();
+            }
+        }
+        if (target.matches('.unarchive-case-button')) {
+            const caseToUnarchive = getCaseById(activeCaseId);
+            if (caseToUnarchive) {
+                caseToUnarchive.isArchived = false;
+                render();
+            }
         }
     }
 
     // --- FUNÇÕES AUXILIARES ---
     function applyFormatToDiary(format, value = null) {
         document.execCommand(format, false, value);
+    }
+
+    function updatePendingTasksCount() {
+        const count = cases.reduce((total, caseData) => {
+            if (caseData.checklist) {
+                const pending = caseData.checklist.filter(task => !task.isDone).length;
+                return total + pending;
+            }
+            return total;
+        }, 0);
+
+        const countElement = document.getElementById('pending-tasks-count');
+        if (countElement) {
+            countElement.textContent = count > 0 ? `(${count})` : '';
+        }
     }
 
     function getCaseById(id) {
@@ -768,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPostLiveList() {
         const postLiveList = document.getElementById('post-live-list');
         postLiveList.querySelectorAll('button').forEach(btn => btn.remove());
-        const postLiveCases = cases.filter(c => c.isPostLive);
+        const postLiveCases = cases.filter(c => c.isPostLive && !c.isArchived);
         postLiveCases.forEach(caseData => {
             const button = document.createElement('button');
             button.textContent = caseData.number || 'Caso Post-live';
@@ -841,6 +970,97 @@ document.addEventListener('DOMContentLoaded', () => {
         const fileNameElement = document.getElementById('current-file-name');
         if (fileNameElement) {
             fileNameElement.textContent = currentFileName;
+        }
+    }
+
+    // --- Funções de Pesquisa ---
+    function openSearchModal() {
+        const lastSearch = localStorage.getItem('lastSearchQuery');
+        if (lastSearch) {
+            searchInput.value = lastSearch;
+            performSearch();
+        }
+        searchModal.classList.remove('hidden');
+        searchInput.focus();
+    }
+
+    function closeSearchModal() {
+        searchModal.classList.add('hidden');
+    }
+
+    function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        localStorage.setItem('lastSearchQuery', searchInput.value.trim());
+
+        searchResultsContainer.innerHTML = '';
+
+        if (!query) return;
+
+        const results = cases.filter(caseData => {
+            const title = caseData.title?.toLowerCase() || '';
+            const number = caseData.number?.toLowerCase() || '';
+            const diary = caseData.diary.map(entry => entry.text.toLowerCase()).join(' ');
+            const checklist = caseData.checklist.map(task => task.text.toLowerCase()).join(' ');
+            const tags = caseData.tags.map(tag => tag.toLowerCase()).join(' ');
+
+            return title.includes(query) ||
+                   number.includes(query) ||
+                   diary.includes(query) ||
+                   checklist.includes(query) ||
+                   tags.includes(query);
+        });
+
+        if (results.length === 0) {
+            searchResultsContainer.innerHTML = '<p>Nenhum caso encontrado.</p>';
+            return;
+        }
+
+        const highlight = (text, term) => {
+            if (!text || !term) return text;
+            const regex = new RegExp(`(${term})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        };
+
+        results.forEach(caseData => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'search-result-item';
+            resultItem.dataset.caseId = caseData.id;
+
+            let content = '';
+            content += `<p><strong>Título:</strong> ${highlight(caseData.title, query)}</p>`;
+            content += `<p><strong>Número:</strong> ${highlight(caseData.number, query)}</p>`;
+
+            const matchingTags = caseData.tags.filter(tag => tag.toLowerCase().includes(query));
+            if (matchingTags.length > 0) {
+                content += `<p><strong>Tags:</strong> ${matchingTags.map(tag => highlight(tag, query)).join(', ')}</p>`;
+            }
+            
+            resultItem.innerHTML = `
+                <h4>${caseData.number || 'Novo Caso'} - ${caseData.title}</h4>
+                ${content}
+            `;
+            searchResultsContainer.appendChild(resultItem);
+        });
+    }
+
+    function resetSearch() {
+        searchInput.value = '';
+        searchResultsContainer.innerHTML = '';
+        searchCaseContentContainer.innerHTML = '';
+        localStorage.removeItem('lastSearchQuery');
+        searchInput.focus();
+    }
+
+    function handleSearchResultClick(event) {
+        const resultItem = event.target.closest('.search-result-item');
+        if (resultItem) {
+            const caseId = resultItem.dataset.caseId;
+            const originalActiveCaseId = activeCaseId;
+            activeCaseId = caseId;
+            
+            renderActiveCaseContent(searchCaseContentContainer, true);
+
+            activeCaseId = originalActiveCaseId;
         }
     }
 

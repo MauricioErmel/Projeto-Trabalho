@@ -60,7 +60,7 @@ main {
     display: none; /* O input real fica escondido */
 }
 
-.file-button, #save-button, #new-case-button, #toggle-archived-button, #toggle-post-live-button, #toggle-pending-tasks-button {
+.file-button, #save-button, #new-case-button, #toggle-archived-button, #toggle-post-live-button, #toggle-pending-tasks-button, #search-cases-button {
     background-color: #007bff;
     color: white;
     border: none;
@@ -74,6 +74,14 @@ main {
 
 .file-button:hover, #save-button:hover, #new-case-button:hover, #toggle-post-live-button:hover {
     background-color: #0056b3;
+}
+
+#save-button {
+    background-color: #28a745;
+}
+
+#save-button:hover {
+    background-color: #218838;
 }
 
 #toggle-archived-button {
@@ -105,7 +113,7 @@ main {
 .cs-file-actions-cell {
     width: 60px;
     border: none !important;
-    position: relative;
+    text-align: center;
 }
 
 #cs-files-list .cs-file-actions {
@@ -113,15 +121,6 @@ main {
     flex-direction: column;
     gap: 5px;
     visibility: hidden;
-    position: absolute;
-    left: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: #fff;
-    padding: 5px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    z-index: 10;
 }
 
 #cs-files-list tr:hover .cs-file-actions {
@@ -667,6 +666,20 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
     background-color: #c82333;
 }
 
+.unarchive-case-button {
+    background-color: #28a745; /* Green */
+    color: white;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.unarchive-case-button:hover {
+    background-color: #218838;
+}
+
 /* Coluna de Casos Arquivados e Post-live */
 #archived-list,
 #post-live-list {
@@ -883,11 +896,11 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
 }
 
 #toggle-post-live-button {
-    background-color: #17a2b8;
+    background-color: #6c757d;
 }
 
 #toggle-post-live-button:hover {
-    background-color: #117a8b;
+    background-color: #5a6268;
 }
 
 .case-content.post-live-case {
@@ -938,11 +951,11 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
 }
 
 #toggle-pending-tasks-button {
-    background-color: #fd7e14; /* Laranja */
+    background-color: #dc3545; /* Vermelho */
 }
 
 #toggle-pending-tasks-button:hover {
-    background-color: #e66a00;
+    background-color: #c82333;
 }
 
 /* --- Estilos de Links de Tarefas Pendentes --- */
@@ -953,4 +966,82 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
 
 .case-number-for-task.archived-link {
     color: #dc3545; /* Vermelho */
+}
+
+/* Estilos do Modal de Pesquisa */
+#search-cases-button {
+    background-color: #fd7e14; /* Laranja */
+}
+
+#search-cases-button:hover {
+    background-color: #e66a00;
+}
+
+.search-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+#search-input {
+    flex-grow: 1;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 0.5rem;
+}
+
+#search-button, #reset-search-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+#search-button {
+    background-color: #007bff;
+}
+
+#reset-search-button {
+    background-color: #6c757d;
+}
+
+#search-results {
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+    background-color: #f8f9fa;
+}
+
+.search-result-item h4 {
+    margin: 0 0 0.5rem 0;
+    color: #007bff;
+}
+
+.search-result-item p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.highlight {
+    background-color: yellow;
+    font-weight: bold;
+}
+
+#search-case-content-container {
+    margin-top: 1.5rem;
+    border-top: 2px solid #007bff;
+    padding-top: 1.5rem;
 }

@@ -15,12 +15,13 @@
             <span id="current-file-name"></span>
         </div>
         <div class="file-controls">
-            <button id="toggle-pending-tasks-button">Tarefas</button>
+            <button id="toggle-pending-tasks-button">Tarefas <span id="pending-tasks-count"></span></button>
+            <button id="search-cases-button">Pesquisar</button>
             <label for="file-loader" class="file-button">Carregar Casos</label>
             <input type="file" id="file-loader" accept=".txt">
             <button id="save-button">Salvar Alterações</button>
-            <button id="toggle-archived-button">Ver Casos Arquivados</button>
-            <button id="toggle-post-live-button">Ver Post-live</button>
+            <button id="toggle-archived-button">Casos Arquivados</button>
+            <button id="toggle-post-live-button">Post-live</button>
         </div>
     </header>
 
@@ -148,6 +149,23 @@
             <div id="cs-files-list">
                 <!-- CS Files serão renderizados aqui -->
             </div>
+        </div>
+    </div>
+
+    <!-- Modal de Pesquisa -->
+    <div id="search-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close-button">&times;</span>
+            <h2>Pesquisar Casos</h2>
+            <div class="search-controls">
+                <input type="text" id="search-input" placeholder="Digite para pesquisar...">
+                <button id="search-button">Pesquisar</button>
+                <button id="reset-search-button">Resetar</button>
+            </div>
+            <div id="search-results">
+                <!-- Resultados da pesquisa aparecerão aqui -->
+            </div>
+            <div id="search-case-content-container"></div>
         </div>
     </div>
 
