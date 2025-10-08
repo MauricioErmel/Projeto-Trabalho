@@ -588,6 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
             activeCase.checklist.unshift({ id: Date.now().toString(), text: checklistInput.value.trim(), isDone: false });
             checklistInput.value = '';
             renderChecklist(activeCase, contentContainer);
+            renderPendingTasks();
             checklistInput.focus();
         }
     }
@@ -961,6 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (task) { 
                 task.isDone = target.checked; 
                 renderChecklist(activeCase, contentContainer);
+                renderPendingTasks();
             }
         }
         if (target.matches('.edit-task-button')) {
