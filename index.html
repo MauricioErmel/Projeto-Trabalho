@@ -15,19 +15,29 @@
             <span id="current-file-name"></span>
         </div>
         <div class="file-controls">
-            <button id="toggle-pending-tasks-button">Tarefas <span id="pending-tasks-count"></span></button>
             <button id="search-cases-button">Pesquisar</button>
-            <label for="file-loader" class="file-button">Carregar Casos</label>
-            <input type="file" id="file-loader" accept=".txt">
-            <button id="save-button">Salvar Alterações</button>
             <button id="toggle-archived-button">Casos Arquivados</button>
             <button id="toggle-post-live-button">Post-live</button>
+            <button id="save-button">Salvar Alterações</button>
+            <label for="file-loader" class="file-button">Carregar Casos</label>
+            <input type="file" id="file-loader" accept=".txt">
         </div>
     </header>
 
+    <div id="horizontal-menu">
+        <button id="new-case-button">+ Novo Caso</button>
+        <div id="tabs-container">
+        </div>
+    </div>
+
     <main>
-        <nav id="tabs-container">
-            <button id="new-case-button">+ Novo Caso</button>
+        <nav id="left-sidebar">
+            <div id="pending-tasks-container" class="hidden">
+                <h3>Tarefas Pendentes</h3>
+                <div id="pending-tasks-list">
+                    <!-- Pending tasks will be rendered here -->
+                </div>
+            </div>
         </nav>
 
         <div id="archived-list" class="hidden">
@@ -53,7 +63,7 @@
 
     <!-- Template para uma nova aba de caso -->
     <template id="case-tab-template">
-        <button class="tab"></button>
+        <button class="tab" draggable="true"></button>
     </template>
 
     <!-- Template para o conteúdo de um caso -->
@@ -61,10 +71,24 @@
         <div class="case-content">
             <div class="case-header">
                 <input type="text" class="case-title-input" placeholder="Título do Caso">
-                <div class="tags-container">
-                    <!-- As tags serão adicionadas aqui -->
+                <div class="status-and-tags-container">
+                    <div class="case-status-container">
+                        <div class="status-dropdown">
+                            <div class="status-selected">
+                                <span class="status-text"></span>
+                            </div>
+                            <div class="status-options hidden">
+                                <!-- Status options will be populated by JS -->
+                            </div>
+                        </div>
+                        <span class="status-info-icon hidden">&#x24D8;</span>
+                    </div>
+                    <div class="tags-container">
+                        <!-- As tags serão adicionadas aqui -->
+                    </div>
                 </div>
                 <div class="case-meta">
+                    <button class="favorite-case-button">&#x2606;</button> <!-- ☆ - White Star -->
                     <button class="copy-case-number-button-content">&#x1f4cb;</button>
                     <input type="text" class="case-number-input" placeholder="Número do Caso">
                     <input type="datetime-local" class="case-launch-date-input">
@@ -109,6 +133,13 @@
             </div>
             <div class="case-footer">
                 <button class="archive-case-button">Arquivar Caso</button>
+                <button class="delete-case-button hidden">Excluir Permanentemente</button>
+            </div>
+            <div class="status-info-popup hidden">
+                <div class="status-info-popup-content">
+                    <span class="status-info-popup-close-button">&times;</span>
+                    <p>Texto placeholder: Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis.</p>
+                </div>
             </div>
         </div>
     </template>

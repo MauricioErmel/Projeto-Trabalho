@@ -27,10 +27,28 @@ document.addEventListener('DOMContentLoaded', () => {
     let cases = [];
     let activeCaseId = null;
     let currentFileName = '';
+    let draggedTab = null;
+    const caseStatusGroups = [
+        { number: 1, statuses: ['New'] },
+        { number: 2, statuses: ['Developer Assigned'] },
+        { number: 3, statuses: ['Work in Progress'] },
+        { number: 4, statuses: ['Peer Review', 'Send for QA', 'QA Approved'] },
+        { number: 5, statuses: ['Send for Review'] },
+        { number: 6, statuses: ['Approved'] },
+        { number: 7, statuses: ['Launched'] },
+        { number: 8, statuses: ['Verified', 'Denorm', 'Edits Needed', 'Escalated', 'Globalization Completed', 'Globalization Started', 'Need More info'] },
+        { number: 9, statuses: ['Closed', 'Rejected'] }
+    ];
+    const caseStatuses = caseStatusGroups.flatMap(group => group.statuses);
+    const statusesWithoutNumber = [
+        'Send for QA', 'QA Approved', 'Denorm', 'Edits Needed', 'Escalated',
+        'Globalization Completed', 'Globalization Started', 'Need More info', 'Rejected'
+    ];
 
     // --- INICIALIZAÇÃO ---
     function init() {
         addEventListeners();
+        document.getElementById('pending-tasks-container').classList.remove('hidden');
         render();
         renderCurrentFileName();
     }
@@ -52,6 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Delegação de eventos para elementos dinâmicos
         tabsContainer.addEventListener('click', handleTabClick);
+        tabsContainer.addEventListener('dragstart', handleDragStart);
+        tabsContainer.addEventListener('dragover', handleDragOver);
+        tabsContainer.addEventListener('drop', handleDrop);
+        tabsContainer.addEventListener('dragend', handleDragEnd);
         archivedList.addEventListener('click', handleUnarchive);
         contentContainer.addEventListener('input', handleContentChange);
         contentContainer.addEventListener('click', handleContentClick);
@@ -62,24 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
         togglePostLiveButton.addEventListener('click', togglePostLiveView);
         postLiveList.addEventListener('click', handleUnpostLive);
 
-        const togglePendingTasksButton = document.getElementById('toggle-pending-tasks-button');
-        const pendingTasksModal = document.getElementById('pending-tasks-modal');
-        const pendingTasksModalCloseButton = pendingTasksModal.querySelector('.modal-close-button');
 
-        togglePendingTasksButton.addEventListener('click', () => {
-            renderPendingTasks();
-            pendingTasksModal.classList.remove('hidden');
-        });
 
-        pendingTasksModalCloseButton.addEventListener('click', () => {
-            pendingTasksModal.classList.add('hidden');
-        });
 
-        pendingTasksModal.addEventListener('click', (event) => {
-            if (event.target === pendingTasksModal) {
-                pendingTasksModal.classList.add('hidden');
-            }
-        });
 
         const pendingTasksList = document.getElementById('pending-tasks-list');
         pendingTasksList.addEventListener('click', handlePendingTaskClick);
@@ -100,6 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.target === searchModal) {
                 closeSearchModal();
             }
+        });
+
+        window.addEventListener('resize', () => {
+            const titleInputs = document.querySelectorAll('.case-title-input');
+            titleInputs.forEach(input => adjustTitleFontSize(input));
         });
     }
 
@@ -127,6 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!caseItem.tags) caseItem.tags = [];
                     if (!caseItem.isPostLive) caseItem.isPostLive = false;
                     if (!caseItem.isContentAutomated) caseItem.isContentAutomated = false;
+                    if (!caseItem.status) caseItem.status = 'New';
+                    if (!caseItem.isFavorite) caseItem.isFavorite = false;
 
                     caseItem.diary.forEach(entry => {
                         if (!entry.id) entry.id = Date.now().toString() + Math.random();
@@ -230,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
             itemLi.innerHTML = `<input type="checkbox" data-task-id="${item.id}" ${item.isDone ? 'checked' : ''}><label class="checklist-label">${item.text}</label><div class="checklist-actions"><button class="edit-task-button" data-task-id="${item.id}">Editar</button><button class="delete-task-button" data-task-id="${item.id}">Excluir</button></div>`;
             checklistItemsContainer.appendChild(itemLi);
         });
-        updatePendingTasksCount();
     }
 
     function renderTags(activeCase, container) {
@@ -350,7 +363,17 @@ document.addEventListener('DOMContentLoaded', () => {
         renderArchivedList();
         renderPostLiveList();
         renderPendingTasks();
-        updatePendingTasksCount();
+    }
+
+    function getStatusLabel(status) {
+        let statusLabel = status || 'New';
+        if (!statusesWithoutNumber.includes(statusLabel)) {
+            const group = caseStatusGroups.find(g => g.statuses.includes(statusLabel));
+            if (group) {
+                statusLabel = `${group.number}. ${statusLabel}`;
+            }
+        }
+        return statusLabel;
     }
 
     function renderTabs() {
@@ -359,10 +382,11 @@ document.addEventListener('DOMContentLoaded', () => {
         visibleCases.forEach(caseData => {
             const tabNode = caseTabTemplate.content.cloneNode(true);
             const tabButton = tabNode.querySelector('.tab');
-            let tabHTML = `<span>${caseData.number || 'Novo Caso'}</span>`;
-            if (caseData.isSpecialProject) tabHTML += ' <span class="sp-tag">SP</span>';
+            
+            let mainContentHTML = `<span class="case-number-in-tab">${caseData.number || 'Novo Caso'}</span>`;
+            if (caseData.isSpecialProject) mainContentHTML += ' <span class="sp-tag">SP</span>';
             if (caseData.canLaunchSooner) {
-                tabHTML += ' <span class="cls-tag">CLS</span>';
+                mainContentHTML += ' <span class="cls-tag">CLS</span>';
             }
             if (caseData.launchDate) {
                 try {
@@ -386,15 +410,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const day = String(date.getDate()).padStart(2, '0');
                         const month = String(date.getMonth() + 1).padStart(2, '0');
-                        tabHTML += ` <span class="date-tag ${dateClass}">(${day}/${month})</span>`;
+                        mainContentHTML += ` <span class="date-tag ${dateClass}">(${day}/${month})</span>`;
                     }
                 } catch (e) { console.error("Data inválida:", caseData.launchDate); }
             }
-            tabButton.innerHTML = tabHTML;
+
+            let statusHTML = '';
+            if (caseData.status) {
+                statusHTML = `<div class="tab-status">${getStatusLabel(caseData.status)}</div>`;
+            }
+
+            tabButton.innerHTML = `<div class="tab-main-content">${mainContentHTML}</div>${statusHTML}`;
             tabButton.dataset.caseId = caseData.id;
             if (caseData.id === activeCaseId) tabButton.classList.add('active');
             if (caseData.isReopened) tabButton.classList.add('reopened');
             tabsContainer.appendChild(tabButton);
+        });
+    }
+
+    function renderStatusDropdown(activeCase, container) {
+        const statusText = container.querySelector('.status-text');
+        const statusInfoIcon = container.querySelector('.status-info-icon');
+        const statusOptions = container.querySelector('.status-options');
+
+        statusText.textContent = getStatusLabel(activeCase.status);
+        statusInfoIcon.classList.toggle('hidden', !activeCase.status);
+
+        statusOptions.innerHTML = '';
+        caseStatusGroups.forEach(group => {
+            group.statuses.forEach(status => {
+                const option = document.createElement('div');
+                option.className = 'status-option';
+                if (statusesWithoutNumber.includes(status)) {
+                    option.textContent = status;
+                } else {
+                    option.textContent = `${group.number}. ${status}`;
+                }
+                option.dataset.status = status;
+                statusOptions.appendChild(option);
+            });
         });
     }
 
@@ -421,7 +475,19 @@ document.addEventListener('DOMContentLoaded', () => {
         contentNode.querySelector('.content-automated-checkbox').checked = activeCase.isContentAutomated;
         contentNode.querySelector('.post-live-checkbox').checked = activeCase.isPostLive;
 
+        const favoriteButton = contentNode.querySelector('.favorite-case-button');
+        if (activeCase.isFavorite) {
+            favoriteButton.innerHTML = '&#x2605;'; // ★ - Black Star
+            favoriteButton.classList.add('favorited');
+        } else {
+            favoriteButton.innerHTML = '&#x2606;'; // ☆ - White Star
+            favoriteButton.classList.remove('favorited');
+        }
+
+        renderStatusDropdown(activeCase, contentNode);
         renderTags(activeCase, contentNode);
+
+
 
         const diaryEntriesContainer = contentNode.querySelector('.diary-entries');
         activeCase.diary.forEach(entry => {
@@ -434,10 +500,15 @@ document.addEventListener('DOMContentLoaded', () => {
         renderChecklist(activeCase, contentNode);
 
         const archiveButton = contentNode.querySelector('.archive-case-button');
+        const deleteButton = contentNode.querySelector('.delete-case-button');
+
         if (activeCase.isArchived) {
             archiveButton.textContent = 'Reativar Caso';
             archiveButton.classList.remove('archive-case-button');
             archiveButton.classList.add('unarchive-case-button');
+            deleteButton.classList.remove('hidden');
+        } else {
+            deleteButton.classList.add('hidden');
         }
 
         if (isReadOnly) {
@@ -451,6 +522,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         container.appendChild(contentNode);
+
+        const titleInput = container.querySelector('.case-title-input');
+        if (titleInput) {
+            adjustTitleFontSize(titleInput);
+        }
 
         // --- Toolbar visibility logic ---
         const diaryToolbar = container.querySelector('.diary-toolbar');
@@ -491,10 +567,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        updateManageCsFilesButtonCount();
     }
 
     function renderArchivedList() {
-        archivedList.querySelectorAll('button').forEach(btn => btn.remove());
+        const h3 = archivedList.querySelector('h3');
+        archivedList.innerHTML = '';
+        if (h3) archivedList.appendChild(h3);
+
         const archivedCases = cases.filter(c => c.isArchived);
         archivedCases.forEach(caseData => {
             const button = document.createElement('button');
@@ -502,6 +583,9 @@ document.addEventListener('DOMContentLoaded', () => {
             button.dataset.caseId = caseData.id;
             if (caseData.id === activeCaseId) {
                 button.classList.add('active');
+            }
+            if (caseData.isFavorite) {
+                button.classList.add('favorite-archived');
             }
             archivedList.appendChild(button);
         });
@@ -533,10 +617,12 @@ document.addEventListener('DOMContentLoaded', () => {
             isReopened: false,
             isPostLive: false,
             isContentAutomated: false,
+            isFavorite: false,
             diary: [],
             checklist: [],
             csFiles: [],
-            tags: []
+            tags: [],
+            status: 'New'
         };
         cases.unshift(newCase);
         activeCaseId = newCase.id;
@@ -557,6 +643,54 @@ document.addEventListener('DOMContentLoaded', () => {
             activeCaseId = button.dataset.caseId;
             render();
         }
+    }
+
+    function handleDragStart(event) {
+        if (!event.target.matches('.tab')) return;
+        draggedTab = event.target;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', draggedTab.dataset.caseId);
+        setTimeout(() => {
+            if (draggedTab) draggedTab.classList.add('dragging');
+        }, 0);
+    }
+
+    function handleDragOver(event) {
+        event.preventDefault();
+        const targetTab = event.target.closest('.tab');
+        if (targetTab && targetTab !== draggedTab) {
+            const rect = targetTab.getBoundingClientRect();
+            const isAfter = event.clientX > rect.left + rect.width / 2;
+            if (isAfter) {
+                targetTab.parentNode.insertBefore(draggedTab, targetTab.nextSibling);
+            } else {
+                targetTab.parentNode.insertBefore(draggedTab, targetTab);
+            }
+        }
+    }
+
+    function handleDrop(event) {
+        event.preventDefault();
+        if (draggedTab) {
+            const newOrderedIds = [...tabsContainer.querySelectorAll('.tab')].map(tab => tab.dataset.caseId);
+            const visibleCases = cases.filter(c => !c.isArchived && !c.isPostLive);
+            
+            visibleCases.sort((a, b) => {
+                return newOrderedIds.indexOf(a.id) - newOrderedIds.indexOf(b.id);
+            });
+
+            const otherCases = cases.filter(c => c.isArchived || c.isPostLive);
+            cases = [...visibleCases, ...otherCases];
+            
+            renderTabs();
+        }
+    }
+
+    function handleDragEnd(event) {
+        if (draggedTab) {
+            draggedTab.classList.remove('dragging');
+        }
+        draggedTab = null;
     }
 
     function toggleArchivedView() {
@@ -593,12 +727,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 productIdInput.value = '';
                 
                 renderCsFilesList(activeCase);
+                updateManageCsFilesButtonCount();
             }
         } else if (target.matches('.delete-cs-file-button')) {
             const csFileId = target.dataset.csFileId;
             if (confirm('Tem certeza que deseja excluir este CS File?')) {
                 activeCase.csFiles = activeCase.csFiles.filter(file => file.id !== csFileId);
                 renderCsFilesList(activeCase);
+                updateManageCsFilesButtonCount();
             }
         } else if (target.matches('.edit-cs-file-button')) {
             const row = target.closest('tr');
@@ -646,7 +782,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeCase) return;
         const target = event.target;
         const value = target.type === 'checkbox' ? target.checked : target.value;
-        if (target.matches('.case-title-input')) activeCase.title = value;
+        if (target.matches('.case-title-input')) {
+            activeCase.title = value;
+            adjustTitleFontSize(target);
+        }
         if (target.matches('.case-number-input')) activeCase.number = value;
         if (target.matches('.case-launch-date-input')) activeCase.launchDate = value;
         if (target.matches('.special-project-checkbox')) activeCase.isSpecialProject = value;
@@ -690,6 +829,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleContentClick(event) {
+        const target = event.target;
+        const activeCase = getActiveCase();
+
+        if (target.closest('.status-selected')) {
+            const statusOptions = target.closest('.status-dropdown').querySelector('.status-options');
+            statusOptions.classList.toggle('hidden');
+            return;
+        }
+
+        if (target.matches('.status-option')) {
+            if (activeCase) {
+                activeCase.status = target.dataset.status;
+                renderActiveCaseContent();
+                renderTabs();
+            }
+            return;
+        }
+
+        if (target.matches('.status-info-icon')) {
+            const popup = contentContainer.querySelector('.status-info-popup');
+            popup.classList.remove('hidden');
+            return;
+        }
+
+        if (target.matches('.status-info-popup-close-button') || target.matches('.status-info-popup')) {
+            const popup = contentContainer.querySelector('.status-info-popup');
+            popup.classList.add('hidden');
+            return;
+        }
+
+        if (target.matches('.favorite-case-button')) {
+            if (activeCase) {
+                activeCase.isFavorite = !activeCase.isFavorite;
+                if (activeCase.isFavorite) {
+                    target.innerHTML = '&#x2605;';
+                    target.classList.add('favorited');
+                } else {
+                    target.innerHTML = '&#x2606;';
+                    target.classList.remove('favorited');
+                }
+            }
+            return;
+        }
+
         if (event.target.matches('.copy-case-number-button-content')) {
             const caseContent = event.target.closest('.case-content');
             if (caseContent) {
@@ -713,9 +896,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const activeCase = getActiveCase();
         if (!activeCase) return;
-        const target = event.target;
 
         // --- Ações de Tags ---
         if (target.matches('.add-tag-button')) {
@@ -848,6 +1029,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        if (target.matches('.delete-case-button')) {
+            if (activeCase && confirm('Tem certeza que deseja excluir permanentemente este caso? Esta ação não pode ser desfeita.')) {
+                cases = cases.filter(c => c.id !== activeCase.id);
+                activeCaseId = cases.find(c => !c.isArchived && !c.isPostLive)?.id || null;
+                render();
+            }
+        }
+
         // --- Ações do Caso ---
         if (target.matches('.archive-case-button')) {
             const activeCase = getActiveCase();
@@ -871,18 +1060,31 @@ document.addEventListener('DOMContentLoaded', () => {
         document.execCommand(format, false, value);
     }
 
-    function updatePendingTasksCount() {
-        const count = cases.reduce((total, caseData) => {
-            if (caseData.checklist) {
-                const pending = caseData.checklist.filter(task => !task.isDone).length;
-                return total + pending;
-            }
-            return total;
-        }, 0);
+    function adjustTitleFontSize(inputElement) {
+        // Reset font size to the default
+        inputElement.style.fontSize = '1.8rem';
+    
+        // Get the computed font size in pixels
+        let computedStyle = window.getComputedStyle(inputElement);
+        let fontSize = parseFloat(computedStyle.fontSize);
+    
+        // Check if the text is overflowing
+        while (inputElement.scrollWidth > inputElement.clientWidth && fontSize > 10) { // Added a minimum font size
+            fontSize -= 1; // Decrease font size by 1px
+            inputElement.style.fontSize = fontSize + 'px';
+        }
+    }
 
-        const countElement = document.getElementById('pending-tasks-count');
-        if (countElement) {
-            countElement.textContent = count > 0 ? `(${count})` : '';
+
+
+    function updateManageCsFilesButtonCount() {
+        const activeCase = getActiveCase();
+        if (!activeCase) return;
+
+        const manageCsButton = contentContainer.querySelector('.manage-cs-files-button');
+        if (manageCsButton) {
+            const csFilesCount = activeCase.csFiles ? activeCase.csFiles.length : 0;
+            manageCsButton.textContent = `Gerenciar CS Files (${csFilesCount})`;
         }
     }
 
@@ -896,12 +1098,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderPostLiveList() {
         const postLiveList = document.getElementById('post-live-list');
-        postLiveList.querySelectorAll('button').forEach(btn => btn.remove());
+        const h3 = postLiveList.querySelector('h3');
+        postLiveList.innerHTML = '';
+        if(h3) postLiveList.appendChild(h3);
+
         const postLiveCases = cases.filter(c => c.isPostLive && !c.isArchived);
         postLiveCases.forEach(caseData => {
             const button = document.createElement('button');
-            button.textContent = caseData.number || 'Caso Post-live';
             button.dataset.caseId = caseData.id;
+
+            const statusLabel = getStatusLabel(caseData.status);
+
+            button.innerHTML = `
+                <span class="post-live-item-number">${caseData.number || 'Caso Post-live'}</span>
+                <span class="post-live-item-status">${statusLabel}</span>
+            `;
+
             if (caseData.id === activeCaseId) {
                 button.classList.add('active');
             }
@@ -958,9 +1170,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (caseToView) {
                 activeCaseId = caseId;
-                // Close the modal
-                const pendingTasksModal = document.getElementById('pending-tasks-modal');
-                pendingTasksModal.classList.add('hidden');
                 render();
             }
         }
