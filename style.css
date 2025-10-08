@@ -83,7 +83,7 @@ main {
     text-align: center;
     margin: 0.5rem 0 0.5rem 0;
     font-size: 1rem;
-    padding: 0.2rem
+    padding: 0.2rem;
     color: #343a40;
 }
 
@@ -1287,32 +1287,4 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
 #horizontal-menu {
     display: flex;
     border-bottom: 1px solid #dcdcdc;
-}
-
-/* Favorite Button Styles */
-.favorite-case-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.5rem;
-    color: #ffc107; /* Yellow/Gold color for the star */
-    padding: 0;
-    line-height: 1;
-}
-
-.favorite-case-button:hover {
-    opacity: 0.8;
-}
-
-/* Highlight for Favorited Archived Cases */
-#archived-list button.favorite-archived {
-    background-color: #fff3cd; /* A light yellow */
-    border-left: 4px solid #ffc107;
-    font-weight: bold;
-}
-
-#archived-list button.favorite-archived::before {
-    content: '★ ';
-    color: #ffc107;
-    margin-right: 4px;
 }

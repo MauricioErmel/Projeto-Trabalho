@@ -140,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!caseItem.isPostLive) caseItem.isPostLive = false;
                     if (!caseItem.isContentAutomated) caseItem.isContentAutomated = false;
                     if (!caseItem.status) caseItem.status = 'New';
-                    if (!caseItem.isFavorite) caseItem.isFavorite = false;
 
                     caseItem.diary.forEach(entry => {
                         if (!entry.id) entry.id = Date.now().toString() + Math.random();
@@ -475,15 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
         contentNode.querySelector('.content-automated-checkbox').checked = activeCase.isContentAutomated;
         contentNode.querySelector('.post-live-checkbox').checked = activeCase.isPostLive;
 
-        const favoriteButton = contentNode.querySelector('.favorite-case-button');
-        if (activeCase.isFavorite) {
-            favoriteButton.innerHTML = '&#x2605;'; // ★ - Black Star
-            favoriteButton.classList.add('favorited');
-        } else {
-            favoriteButton.innerHTML = '&#x2606;'; // ☆ - White Star
-            favoriteButton.classList.remove('favorited');
-        }
-
         renderStatusDropdown(activeCase, contentNode);
         renderTags(activeCase, contentNode);
 
@@ -584,9 +574,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (caseData.id === activeCaseId) {
                 button.classList.add('active');
             }
-            if (caseData.isFavorite) {
-                button.classList.add('favorite-archived');
-            }
             archivedList.appendChild(button);
         });
     }
@@ -617,7 +604,6 @@ document.addEventListener('DOMContentLoaded', () => {
             isReopened: false,
             isPostLive: false,
             isContentAutomated: false,
-            isFavorite: false,
             diary: [],
             checklist: [],
             csFiles: [],
@@ -856,20 +842,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.matches('.status-info-popup-close-button') || target.matches('.status-info-popup')) {
             const popup = contentContainer.querySelector('.status-info-popup');
             popup.classList.add('hidden');
-            return;
-        }
-
-        if (target.matches('.favorite-case-button')) {
-            if (activeCase) {
-                activeCase.isFavorite = !activeCase.isFavorite;
-                if (activeCase.isFavorite) {
-                    target.innerHTML = '&#x2605;';
-                    target.classList.add('favorited');
-                } else {
-                    target.innerHTML = '&#x2606;';
-                    target.classList.remove('favorited');
-                }
-            }
             return;
         }
 
