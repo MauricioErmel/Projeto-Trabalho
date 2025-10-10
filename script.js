@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ESTADO DA APLICAÇÃO ---
     let cases = [];
     let activeCaseId = null;
+    let favoriteCaseIds = [];
     let currentFileName = '';
     let draggedTab = null;
     const caseStatusGroups = [
@@ -47,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INICIALIZAÇÃO ---
     function init() {
+        loadFavorites();
         addEventListeners();
         document.getElementById('pending-tasks-container').classList.remove('hidden');
         render();
@@ -115,6 +117,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- MANIPULAÇÃO DE FAVORITOS ---
+    function loadFavorites() {
+        const favorites = localStorage.getItem('favoriteCaseIds');
+        if (favorites) {
+            favoriteCaseIds = JSON.parse(favorites);
+        }
+    }
+
+    function saveFavorites() {
+        localStorage.setItem('favoriteCaseIds', JSON.stringify(favoriteCaseIds));
+    }
+
+    function toggleFavorite() {
+        const activeCase = getActiveCase();
+        if (!activeCase) return;
+
+        const caseId = activeCase.id;
+        const index = favoriteCaseIds.indexOf(caseId);
+
+        if (index > -1) {
+            favoriteCaseIds.splice(index, 1);
+        } else {
+            favoriteCaseIds.push(caseId);
+        }
+
+        saveFavorites();
+        renderActiveCaseContent();
+        renderArchivedList();
+    }
+
     // --- MANIPULAÇÃO DE ARQUIVOS ---
     function handleFileLoad(event) {
         const file = event.target.files[0];
@@ -140,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!caseItem.isPostLive) caseItem.isPostLive = false;
                     if (!caseItem.isContentAutomated) caseItem.isContentAutomated = false;
                     if (!caseItem.status) caseItem.status = 'New';
+                    if (!caseItem.isFavorite) caseItem.isFavorite = false;
 
                     caseItem.diary.forEach(entry => {
                         if (!entry.id) entry.id = Date.now().toString() + Math.random();
@@ -474,6 +507,15 @@ document.addEventListener('DOMContentLoaded', () => {
         contentNode.querySelector('.content-automated-checkbox').checked = activeCase.isContentAutomated;
         contentNode.querySelector('.post-live-checkbox').checked = activeCase.isPostLive;
 
+        const favoriteButton = contentNode.querySelector('.favorite-button');
+        if (favoriteCaseIds.includes(activeCase.id)) {
+            favoriteButton.classList.add('favorited');
+            favoriteButton.innerHTML = '&#9733;'; // Filled star
+        } else {
+            favoriteButton.classList.remove('favorited');
+            favoriteButton.innerHTML = '&#9734;'; // Empty star
+        }
+
         renderStatusDropdown(activeCase, contentNode);
         renderTags(activeCase, contentNode);
 
@@ -574,6 +616,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (caseData.id === activeCaseId) {
                 button.classList.add('active');
             }
+            if (favoriteCaseIds.includes(caseData.id)) {
+                button.classList.add('favorited');
+            }
             archivedList.appendChild(button);
         });
     }
@@ -605,6 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isReopened: false,
             isPostLive: false,
             isContentAutomated: false,
+            isFavorite: false,
             diary: [],
             checklist: [],
             csFiles: [],
@@ -818,6 +864,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleContentClick(event) {
         const target = event.target;
         const activeCase = getActiveCase();
+
+        if (target.matches('.favorite-button')) {
+            toggleFavorite();
+            return;
+        }
 
         if (target.closest('.status-selected')) {
             const statusOptions = target.closest('.status-dropdown').querySelector('.status-options');
