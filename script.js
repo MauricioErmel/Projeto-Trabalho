@@ -189,8 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeCaseId = cases.find(c => !c.isArchived)?.id || null;
                 render();
             } catch (error) {
-                console.error('Erro ao carregar o arquivo:', error);
-                alert('Arquivo de casos inválido ou corrompido.');
+                console.error('Error loading file:', error);
+                alert('Invalid or corrupted case file.');
             }
         };
         reader.readAsText(file);
@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const timestamp = `${year}-${month}-${day}_${hours}-${minutes}`;
-        a.download = `baseDeCasos_${timestamp}.txt`;
+        a.download = `caseBase_${timestamp}.txt`;
         currentFileName = a.download;
         renderCurrentFileName();
         document.body.appendChild(a);
@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedColumns = Array.from(csFilesModal.querySelectorAll('.cs-column-checkbox:checked')).map(box => box.value);
 
         if (selectedColumns.length === 0) {
-            alert("Selecione pelo menos uma coluna para exportar.");
+            alert("Select at least one column to export.");
             return;
         }
 
@@ -255,7 +255,48 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `CS_Files_Caso_${activeCase.number || ''}.txt`;
+        a.download = `CS_Files_Case_${activeCase.number || ''}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function handleCsFilesSpreadsheetDownload() {
+        const activeCase = getActiveCase();
+        if (!activeCase) return;
+
+        const headers = ["Nome", "URL", "Profile", "Collection", "Product ID"];
+        
+        const escapeCsvCell = (cell) => {
+            if (cell === null || cell === undefined) {
+                return '';
+            }
+            let cellString = String(cell);
+            if (cellString.includes(',') || cellString.includes('"') || cellString.includes('\n')) {
+                cellString = '"' + cellString.replace(/"/g, '""') + '"';
+            }
+            return cellString;
+        };
+
+        const headerRow = headers.join(',');
+        const rows = activeCase.csFiles.map(file => {
+            return [
+                escapeCsvCell(file.nome),
+                escapeCsvCell(file.url),
+                escapeCsvCell(file.profile),
+                escapeCsvCell(file.collection),
+                escapeCsvCell(file.productId)
+            ].join(',');
+        });
+
+        const csvContent = [headerRow, ...rows].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `CS_Files_Caso_${activeCase.number || ''}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -273,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const itemLi = document.createElement('li');
             itemLi.className = 'checklist-item';
             if(item.isDone) itemLi.classList.add('done');
-            itemLi.innerHTML = `<input type="checkbox" data-task-id="${item.id}" ${item.isDone ? 'checked' : ''}><label class="checklist-label">${item.text}</label><div class="checklist-actions"><button class="edit-task-button" data-task-id="${item.id}">Editar</button><button class="delete-task-button" data-task-id="${item.id}">Excluir</button></div>`;
+            itemLi.innerHTML = `<input type="checkbox" data-task-id="${item.id}" ${item.isDone ? 'checked' : ''}><label class="checklist-label">${item.text}</label><div class="checklist-actions"><button class="edit-task-button" data-task-id="${item.id}">Edit</button><button class="delete-task-button" data-task-id="${item.id}">Delete</button></div>`;
             checklistItemsContainer.appendChild(itemLi);
         });
     }
@@ -311,9 +352,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const columnSelector = document.createElement('div');
         columnSelector.id = 'cs-column-selector';
         columnSelector.innerHTML = `
-            <strong>Colunas para exportar:</strong>
+            <strong>Columns to export:</strong>
             <div class="cs-column-selector-row">
-                <label><input type="checkbox" class="cs-column-checkbox" value="nome" checked> Nome</label>
+                <label><input type="checkbox" class="cs-column-checkbox" value="nome" checked> Name</label>
                 <label><input type="checkbox" class="cs-column-checkbox" value="url" checked> URL</label>
                 <label><input type="checkbox" class="cs-column-checkbox" value="profile" checked> Profile</label>
                 <label><input type="checkbox" class="cs-column-checkbox" value="collection" checked> Collection</label>
@@ -323,16 +364,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const downloadButton = document.createElement('button');
         downloadButton.id = 'download-cs-files-button';
-        downloadButton.textContent = 'Download .txt dos Selecionados';
+        downloadButton.textContent = 'Download .txt';
         downloadButton.addEventListener('click', handleCsFilesDownload);
-        columnSelector.querySelector('.cs-column-selector-row').appendChild(downloadButton);
+        
+        const downloadSheetButton = document.createElement('button');
+        downloadSheetButton.id = 'download-cs-sheet-button';
+        downloadSheetButton.textContent = 'Download Spreadsheet';
+        downloadSheetButton.addEventListener('click', handleCsFilesSpreadsheetDownload);
+
+        const buttonContainer = columnSelector.querySelector('.cs-column-selector-row');
+        buttonContainer.appendChild(downloadButton);
+        buttonContainer.appendChild(downloadSheetButton);
 
         csFilesList.appendChild(columnSelector);
 
         const listHeader = document.createElement('div');
         listHeader.className = 'cs-files-list-header';
         const title = document.createElement('h3');
-        title.textContent = 'CS Files Registrados';
+        title.textContent = 'Registered CS Files';
         listHeader.appendChild(title);
         csFilesList.appendChild(listHeader);
         
@@ -342,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <thead>
                     <tr>
                         <th class="cs-actions-header"></th>
-                        <th>Nome</th>
+                        <th>Name</th>
                         <th>URL</th>
                         <th>Profile</th>
                         <th>Collection</th>
@@ -358,8 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.innerHTML = `
                     <td class="cs-file-actions-cell">
                         <div class="cs-file-actions">
-                            <button class="edit-cs-file-button" data-cs-file-id="${file.id}">Editar</button>
-                            <button class="delete-cs-file-button" data-cs-file-id="${file.id}">Excluir</button>
+                            <button class="edit-cs-file-button" data-cs-file-id="${file.id}">Edit</button>
+                            <button class="delete-cs-file-button" data-cs-file-id="${file.id}">Delete</button>
                         </div>
                     </td>
                     <td>${file.nome || ''}</td>
@@ -372,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             csFilesList.appendChild(table);
         } else {
             const noFilesMessage = document.createElement('p');
-            noFilesMessage.textContent = 'Nenhum CS File registrado para este caso.';
+            noFilesMessage.textContent = 'No CS Files registered for this case.';
             csFilesList.appendChild(noFilesMessage);
         }
     }
@@ -415,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tabNode = caseTabTemplate.content.cloneNode(true);
             const tabButton = tabNode.querySelector('.tab');
             
-            let mainContentHTML = `<span class="case-number-in-tab">${caseData.number || 'Novo Caso'}</span>`;
+            let mainContentHTML = `<span class="case-number-in-tab">${caseData.number || 'New Case'}</span>`;
             if (caseData.isSpecialProject) mainContentHTML += ' <span class="sp-tag">SP</span>';
             if (caseData.canLaunchSooner) {
                 mainContentHTML += ' <span class="cls-tag">CLS</span>';
@@ -488,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = '';
         const activeCase = getActiveCase();
         if (!activeCase) {
-            container.innerHTML = `<div class="welcome-message"><h2>Bem-vindo!</h2><p>Crie um novo caso ou carregue um arquivo.</p></div>`;
+            container.innerHTML = `<div class="welcome-message"><h2>Welcome!</h2><p>Create a new case or upload a file.</p></div>`;
             return;
         }
         const contentNode = caseContentTemplate.content.cloneNode(true);
@@ -535,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteButton = contentNode.querySelector('.delete-case-button');
 
         if (activeCase.isArchived) {
-            archiveButton.textContent = 'Reativar Caso';
+            archiveButton.textContent = 'Reactivate Case';
             archiveButton.classList.remove('archive-case-button');
             archiveButton.classList.add('unarchive-case-button');
             deleteButton.classList.remove('hidden');
@@ -611,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const archivedCases = cases.filter(c => c.isArchived);
         archivedCases.forEach(caseData => {
             const button = document.createElement('button');
-            button.textContent = caseData.number || 'Caso Arquivado';
+            button.textContent = caseData.number || 'Archived Case';
             button.dataset.caseId = caseData.id;
             if (caseData.id === activeCaseId) {
                 button.classList.add('active');
@@ -641,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createNewCase() {
         const newCase = {
             id: Date.now().toString(),
-            title: 'Novo Caso',
+            title: 'New Case',
             number: '',
             launchDate: '',
             isSpecialProject: false,
@@ -764,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (target.matches('.delete-cs-file-button')) {
             const csFileId = target.dataset.csFileId;
-            if (confirm('Tem certeza que deseja excluir este CS File?')) {
+            if (confirm('Are you sure you want to delete this CS file?')) {
                 activeCase.csFiles = activeCase.csFiles.filter(file => file.id !== csFileId);
                 renderCsFilesList(activeCase);
                 updateManageCsFilesButtonCount();
@@ -784,8 +833,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const csFileId = target.dataset.csFileId;
             actionsCell.innerHTML = `
                 <div class="cs-file-actions" style="visibility: visible; flex-direction: column;">
-                    <button class="save-cs-file-button" data-cs-file-id="${csFileId}">Salvar</button>
-                    <button class="cancel-cs-file-button" data-cs-file-id="${csFileId}">Cancelar</button>
+                    <button class="save-cs-file-button" data-cs-file-id="${csFileId}">Save</button>
+                    <button class="cancel-cs-file-button" data-cs-file-id="${csFileId}">Cancel</button>
                 </div>
             `;
             
@@ -903,7 +952,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const caseNumberInput = caseContent.querySelector('.case-number-input');
                 if (caseNumberInput && caseNumberInput.value) {
                     navigator.clipboard.writeText(caseNumberInput.value).catch(err => {
-                        console.error('Erro ao copiar o número do caso: ', err);
+                        console.error('Error copying the case number: ', err);
                     });
                 }
             }
@@ -964,8 +1013,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionsDiv.className = 'edit-diary-actions';
                 actionsDiv.style.marginTop = '0.5rem';
                 actionsDiv.innerHTML = `
-                    <button class="save-diary-button" data-diary-id="${diaryId}">Salvar</button>
-                    <button class="cancel-diary-button" data-diary-id="${diaryId}">Cancelar</button>
+                    <button class="save-diary-button" data-diary-id="${diaryId}">Save</button>
+                    <button class="cancel-diary-button" data-diary-id="${diaryId}">Cancel</button>
                 `;
 
                 textContentDiv.innerHTML = '';
@@ -997,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (target.matches('.delete-diary-button')) {
             const diaryId = target.dataset.diaryId;
-            if (confirm('Tem certeza que deseja excluir esta entrada do diário?')) {
+            if (confirm('Are you sure you want to delete this journal entry?')) {
                 activeCase.diary = activeCase.diary.filter(e => e.id !== diaryId);
                 renderActiveCaseContent();
             }
@@ -1025,8 +1074,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 label.innerHTML = `
                     <input type="text" class="edit-task-input" value="${task.text}" style="width: 100%;">
                     <div class="edit-task-actions" style="margin-top: 0.5rem;">
-                        <button class="save-task-button" data-task-id="${taskId}">Salvar</button>
-                        <button class="cancel-task-button" data-task-id="${taskId}">Cancelar</button>
+                        <button class="save-task-button" data-task-id="${taskId}">Save</button>
+                        <button class="cancel-task-button" data-task-id="${taskId}">Cancel</button>
                     </div>
                 `;
             }
@@ -1048,14 +1097,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (target.matches('.delete-task-button')) {
             const taskId = target.dataset.taskId;
-            if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+            if (confirm('Are you sure you want to delete this task?')) {
                 activeCase.checklist = activeCase.checklist.filter(t => t.id !== taskId);
                 renderChecklist(activeCase, contentContainer);
             }
         }
 
         if (target.matches('.delete-case-button')) {
-            if (activeCase && confirm('Tem certeza que deseja excluir permanentemente este caso? Esta ação não pode ser desfeita.')) {
+            if (activeCase && confirm('Are you sure you want to permanently delete this case? This action cannot be undone.')) {
                 cases = cases.filter(c => c.id !== activeCase.id);
                 activeCaseId = cases.find(c => !c.isArchived && !c.isPostLive)?.id || null;
                 render();
@@ -1135,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const statusLabel = getStatusLabel(caseData.status);
 
             button.innerHTML = `
-                <span class="post-live-item-number">${caseData.number || 'Caso Post-live'}</span>
+                <span class="post-live-item-number">${caseData.number || 'Case Post-live'}</span>
                 <span class="post-live-item-status">${statusLabel}</span>
             `;
 
@@ -1245,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (results.length === 0) {
-            searchResultsContainer.innerHTML = '<p>Nenhum caso encontrado.</p>';
+            searchResultsContainer.innerHTML = '<p>No case found.</p>';
             return;
         }
 
@@ -1261,8 +1310,8 @@ document.addEventListener('DOMContentLoaded', () => {
             resultItem.dataset.caseId = caseData.id;
 
             let content = '';
-            content += `<p><strong>Título:</strong> ${highlight(caseData.title, query)}</p>`;
-            content += `<p><strong>Número:</strong> ${highlight(caseData.number, query)}</p>`;
+            content += `<p><strong>Title:</strong> ${highlight(caseData.title, query)}</p>`;
+            content += `<p><strong>Number:</strong> ${highlight(caseData.number, query)}</p>`;
 
             const matchingTags = caseData.tags.filter(tag => tag.toLowerCase().includes(query));
             if (matchingTags.length > 0) {

@@ -1,4 +1,8 @@
 /* Estrutura Geral */
+* {
+    box-sizing: border-box;
+}
+
 .hidden {
     display: none !important;
 }
@@ -608,8 +612,18 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
     flex-grow: 1;
 }
 
-.diary-section, .checklist-section {
-    flex: 1;
+.diary-section {
+    flex: 0 0 calc(70% - 0.75rem);
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+}
+
+.checklist-section {
+    flex: 0 0 calc(30% - 0.75rem);
     background: #f8f9fa;
     padding: 1rem;
     border-radius: 8px;
@@ -998,6 +1012,22 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
     background-color: #218838;
 }
 
+#download-cs-sheet-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+#download-cs-sheet-button:hover {
+    background-color: #0056b3;
+}
+
 .date-tag.date-future {
     color: #007bff; /* Azul */
 }
@@ -1100,13 +1130,13 @@ input[type="text"], input[type="date"], input[type="datetime-local"] {
 .case-number-for-task {
     font-weight: bold;
     color: #007bff;
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     text-align: center;
 }
 
 .task-text {
     white-space: normal;
-    font-size: 0.8rem;
+    font-size: 1rem;
 }
 
 /* --- Estilos de Links de Tarefas Pendentes --- */
